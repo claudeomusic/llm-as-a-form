@@ -15,13 +15,11 @@ export function ToolForm({ tool, onSubmit, onCancel, isLoading = false }: ToolFo
   const schema = toolToZodSchema(tool);
   const fields = toolToFormFields(tool);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
+  const form = useForm<Record<string, any>>({
     resolver: zodResolver(schema),
   });
+
+  const { register, handleSubmit, formState: { errors } } = form;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

@@ -6,6 +6,7 @@ export type { LLMFormContainerProps } from './components/LLMFormContainer';
 
 // Hooks
 export { useLLMForm } from './hooks/useLLMForm';
+export type { UseLLMFormConfig } from './hooks/useLLMForm';
 
 // Types
 export type {

@@ -1,14 +1,33 @@
 # llm-as-a-form
 
-A React library for interacting with LLMs through dynamic forms instead of chat interfaces. Instead of free-form chat, LLMs request structured information through typed forms based on tool/function calling.
+A React library that replaces chat interfaces with intelligent, dynamic forms. The LLM analyzes context and immediately presents the appropriate form—no chat required.
+
+## Core Concept
+
+Traditional LLM interfaces use chat. This library uses **forms** as the primary interaction method:
+
+1. **User arrives with context** (URL `/register`, app state, user intent)
+2. **LLM analyzes and selects form** (registration form, feedback form, etc.)
+3. **User fills structured form fields** (name, email, etc.)
+4. **LLM processes and responds** (shows completion or requests another form)
+
+**No chat input. No back-and-forth messages. Just intelligent forms.**
+
+## Why Forms Over Chat?
+
+- **Structured data from the start**: No parsing unstructured text
+- **Better UX for known tasks**: Users know exactly what information to provide
+- **Type safety**: Validate inputs before submission
+- **Accessibility**: Standard form controls work with screen readers
+- **Mobile-friendly**: Native form inputs, dropdowns, and pickers
 
 ## Features
 
-- **Form-based LLM interaction**: LLMs request information through structured forms instead of chat messages
+- **Form-first interaction**: LLM determines the right form based on context
 - **Provider agnostic**: Bring your own LLM client (OpenAI, Anthropic, etc.)
 - **Type-safe**: Built with TypeScript and Zod validation
 - **React Hook Form**: Leverages react-hook-form for powerful form handling
-- **Tool calling**: Uses native LLM tool/function calling to determine which form to show
+- **Tool calling**: Uses native LLM tool/function calling to select forms
 - **Customizable**: Render your own UI components or use the default ones
 
 ## Installation
@@ -22,22 +41,171 @@ npm install llm-as-a-form react react-dom react-hook-form zod
 ```tsx
 import { LLMFormContainer, LLMClient, Message, ToolDefinition } from 'llm-as-a-form';
 
-// 1. Implement the LLM client interface for your provider
-const openAIClient: LLMClient = {
+// 1. Implement the LLM client interface
+const myLLMClient: LLMClient = {
   async sendMessage(messages: Message[], tools: ToolDefinition[]) {
-    // Call your LLM API here
+    // Call your LLM API (OpenAI, Anthropic, etc.)
+    // Return the response with tool calls
+  },
+};
+
+// 2. Define your forms as tools
+const tools: ToolDefinition[] = [
+  {
+    name: 'registration_form',
+    description: 'User registration and account creation',
+    parameters: {
+      name: { type: 'string', required: true, description: 'Full name' },
+      email: { type: 'string', required: true, description: 'Email address' },
+      country: {
+        type: 'string',
+        required: true,
+        enum: ['USA', 'Canada', 'UK', 'Other']
+      },
+    },
+  },
+  // ... more forms
+];
+
+// 3. Use the component
+function RegisterPage() {
+  return (
+    <LLMFormContainer
+      tools={tools}
+      client={myLLMClient}
+      initialContext="User navigated to /register - they want to create an account"
+      systemMessage="Show the appropriate registration form based on the context."
+      onToolSubmit={async (toolName, data) => {
+        // Handle form submission
+        await saveToDatabase(data);
+      }}
+    />
+  );
+}
+```
+
+## How It Works
+
+### 1. Component Mounts with Context
+
+```tsx
+<LLMFormContainer
+  tools={tools}
+  client={client}
+  initialContext="User is on /appointments page"
+  ...
+/>
+```
+
+### 2. LLM Receives Context and Selects Form
+
+The LLM gets:
+- System message (your instructions)
+- Initial context (page URL, user intent, app state)
+- Available tools (your form definitions)
+
+It responds with a tool call selecting the appropriate form.
+
+### 3. Form is Rendered
+
+The library automatically:
+- Converts tool parameters to form fields
+- Adds validation with Zod
+- Renders with react-hook-form
+
+### 4. User Submits, LLM Processes
+
+After submission:
+- Your `onToolSubmit` handler is called
+- LLM receives the data and can:
+  - Show a completion message
+  - Request another form (multi-step flows)
+  - Show validation errors
+
+## Real-World Example
+
+### Multi-Page App with Different Forms
+
+```tsx
+// App.tsx
+function App() {
+  const route = useRoute(); // /register, /appointments, /feedback
+
+  const getContext = (route) => {
+    switch (route) {
+      case '/register':
+        return 'User wants to create an account';
+      case '/appointments':
+        return 'User wants to schedule an appointment';
+      case '/feedback':
+        return 'User wants to leave feedback';
+    }
+  };
+
+  return (
+    <LLMFormContainer
+      key={route} // Remount on route change
+      tools={tools}
+      client={client}
+      initialContext={getContext(route)}
+      systemMessage="Based on context, show the most appropriate form."
+      onToolSubmit={handleSubmit}
+    />
+  );
+}
+```
+
+### Multi-Step Form Flow
+
+```tsx
+const tools = [
+  {
+    name: 'collect_basic_info',
+    description: 'Collect name and email',
+    parameters: { /* ... */ },
+  },
+  {
+    name: 'collect_preferences',
+    description: 'Collect user preferences (shown after basic info)',
+    parameters: { /* ... */ },
+  },
+];
+
+// LLM can chain forms:
+// 1. Shows collect_basic_info
+// 2. User submits
+// 3. LLM sees submission and requests collect_preferences
+// 4. User submits
+// 5. LLM shows completion message
+```
+
+## LLM Client Implementation
+
+### OpenAI
+
+```typescript
+const openAIClient: LLMClient = {
+  async sendMessage(messages, tools) {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4-turbo-preview',
         messages: messages.map(m => ({
-          role: m.role,
+          role: m.role === 'tool' ? 'tool' : m.role,
           content: m.content,
-          tool_calls: m.toolCalls,
+          tool_call_id: m.toolCallId,
+          tool_calls: m.toolCalls?.map(tc => ({
+            id: tc.id,
+            type: 'function',
+            function: {
+              name: tc.name,
+              arguments: JSON.stringify(tc.arguments),
+            },
+          })),
         })),
         tools: tools.map(t => ({
           type: 'function',
@@ -57,12 +225,12 @@ const openAIClient: LLMClient = {
     });
 
     const data = await response.json();
-    const choice = data.choices[0];
+    const message = data.choices[0].message;
 
     return {
       role: 'assistant',
-      content: choice.message.content || '',
-      toolCalls: choice.message.tool_calls?.map(tc => ({
+      content: message.content || '',
+      toolCalls: message.tool_calls?.map(tc => ({
         id: tc.id,
         name: tc.function.name,
         arguments: JSON.parse(tc.function.arguments),
@@ -70,248 +238,73 @@ const openAIClient: LLMClient = {
     };
   },
 };
-
-// 2. Define your tools (forms)
-const tools: ToolDefinition[] = [
-  {
-    name: 'collect_user_info',
-    description: 'Collect basic user information',
-    parameters: {
-      name: {
-        type: 'string',
-        description: 'User\'s full name',
-        required: true,
-      },
-      email: {
-        type: 'string',
-        description: 'User\'s email address',
-        required: true,
-      },
-      age: {
-        type: 'number',
-        description: 'User\'s age',
-        required: false,
-      },
-      country: {
-        type: 'string',
-        description: 'Country of residence',
-        required: true,
-        enum: ['USA', 'Canada', 'UK', 'Other'],
-      },
-    },
-  },
-  {
-    name: 'schedule_meeting',
-    description: 'Schedule a meeting',
-    parameters: {
-      title: {
-        type: 'string',
-        description: 'Meeting title',
-        required: true,
-      },
-      date: {
-        type: 'string',
-        description: 'Meeting date (YYYY-MM-DD)',
-        required: true,
-      },
-      duration: {
-        type: 'number',
-        description: 'Duration in minutes',
-        required: true,
-        enum: [15, 30, 60, 90],
-      },
-      notes: {
-        type: 'string',
-        description: 'Additional notes or agenda',
-        required: false,
-      },
-    },
-  },
-];
-
-// 3. Use the component
-function App() {
-  return (
-    <LLMFormContainer
-      tools={tools}
-      client={openAIClient}
-      systemMessage="Hello! I can help you with scheduling meetings or collecting user information. What would you like to do?"
-      onToolSubmit={async (toolName, data) => {
-        console.log(`Tool ${toolName} submitted with data:`, data);
-        // Handle the form submission
-      }}
-      onError={(error) => {
-        console.error('Error:', error);
-      }}
-    />
-  );
-}
 ```
-
-## Core Concepts
-
-### Tool Definitions
-
-Tools define the forms that the LLM can request. Each tool has:
-
-- `name`: Unique identifier
-- `description`: What the form is for (helps the LLM decide when to use it)
-- `parameters`: Field definitions with types, descriptions, and validation rules
-
-### LLM Client
-
-You implement the `LLMClient` interface to connect your preferred LLM provider:
-
-```typescript
-interface LLMClient {
-  sendMessage(messages: Message[], tools: ToolDefinition[]): Promise<Message>;
-}
-```
-
-This gives you complete control over:
-- API authentication
-- Model selection
-- Request/response formatting
-- Error handling
-- Streaming (if desired)
-
-### Form Field Types
-
-The library automatically converts tool parameters to appropriate form fields:
-
-| Parameter Type | Form Field | Notes |
-|---------------|------------|-------|
-| `string` | Text input | Textarea if description > 100 chars |
-| `string` with `enum` | Select dropdown | |
-| `number` | Number input | |
-| `number` with `enum` | Select dropdown | |
-| `boolean` | Checkbox | |
-| `array` | Not yet supported | Coming soon |
-| `object` | Not yet supported | Coming soon |
-
-## Advanced Usage
-
-### Using the Hook Directly
-
-For more control, use the `useLLMForm` hook:
-
-```tsx
-import { useLLMForm } from 'llm-as-a-form';
-
-function CustomLLMForm() {
-  const {
-    messages,
-    currentTool,
-    isLoading,
-    error,
-    sendMessage,
-    submitTool,
-    cancelTool,
-    reset,
-  } = useLLMForm({
-    tools,
-    client,
-    systemMessage: 'How can I help you?',
-    onToolSubmit: async (name, data) => {
-      // Handle submission
-    },
-  });
-
-  // Build your own UI
-  return (
-    <div>
-      {/* Your custom implementation */}
-    </div>
-  );
-}
-```
-
-### Custom Rendering
-
-Customize the UI with render props:
-
-```tsx
-<LLMFormContainer
-  tools={tools}
-  client={client}
-  renderMessages={(messages) => (
-    <div className="custom-messages">
-      {messages.map((msg, i) => (
-        <CustomMessage key={i} message={msg} />
-      ))}
-    </div>
-  )}
-  renderInput={({ value, onChange, onSubmit, isLoading }) => (
-    <CustomInput
-      value={value}
-      onChange={onChange}
-      onSubmit={onSubmit}
-      disabled={isLoading}
-    />
-  )}
-/>
-```
-
-### Standalone Tool Form
-
-Use the `ToolForm` component independently:
-
-```tsx
-import { ToolForm } from 'llm-as-a-form';
-
-function MyForm() {
-  return (
-    <ToolForm
-      tool={myToolDefinition}
-      onSubmit={(data) => {
-        console.log('Form submitted:', data);
-      }}
-      onCancel={() => {
-        console.log('Form cancelled');
-      }}
-    />
-  );
-}
-```
-
-## Examples
 
 ### Anthropic Claude
 
 ```typescript
-import Anthropic from '@anthropic-ai/sdk';
-
 const anthropicClient: LLMClient = {
   async sendMessage(messages, tools) {
-    const client = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1024,
+        messages: messages
+          .filter(m => m.role !== 'assistant' || m.content)
+          .map(m => {
+            if (m.role === 'tool') {
+              return {
+                role: 'user',
+                content: [{
+                  type: 'tool_result',
+                  tool_use_id: m.toolCallId,
+                  content: m.content,
+                }],
+              };
+            }
+            if (m.toolCalls) {
+              return {
+                role: 'assistant',
+                content: [
+                  ...(m.content ? [{ type: 'text', text: m.content }] : []),
+                  ...m.toolCalls.map(tc => ({
+                    type: 'tool_use',
+                    id: tc.id,
+                    name: tc.name,
+                    input: tc.arguments,
+                  })),
+                ],
+              };
+            }
+            return { role: m.role, content: m.content };
+          }),
+        tools: tools.map(t => ({
+          name: t.name,
+          description: t.description,
+          input_schema: {
+            type: 'object',
+            properties: t.parameters,
+            required: Object.entries(t.parameters)
+              .filter(([_, p]) => p.required)
+              .map(([name]) => name),
+          },
+        })),
+      }),
     });
 
-    const response = await client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1024,
-      messages: messages.map(m => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content,
-      })),
-      tools: tools.map(t => ({
-        name: t.name,
-        description: t.description,
-        input_schema: {
-          type: 'object',
-          properties: t.parameters,
-          required: Object.entries(t.parameters)
-            .filter(([_, p]) => p.required)
-            .map(([name]) => name),
-        },
-      })),
-    });
-
-    const toolUse = response.content.find(c => c.type === 'tool_use');
+    const data = await response.json();
+    const textContent = data.content.find(c => c.type === 'text');
+    const toolUse = data.content.find(c => c.type === 'tool_use');
 
     return {
       role: 'assistant',
-      content: response.content.find(c => c.type === 'text')?.text || '',
+      content: textContent?.text || '',
       toolCalls: toolUse ? [{
         id: toolUse.id,
         name: toolUse.name,
@@ -322,64 +315,67 @@ const anthropicClient: LLMClient = {
 };
 ```
 
-### Form Validation
-
-Use Zod schemas for validation:
-
-```tsx
-import { toolToZodSchema } from 'llm-as-a-form';
-
-const schema = toolToZodSchema(myTool);
-// This automatically creates a Zod schema from your tool definition
-```
-
 ## API Reference
 
-### Components
+### `<LLMFormContainer>`
 
-#### `LLMFormContainer`
-
-Main component that handles the full LLM interaction flow.
+Main component for form-first LLM interaction.
 
 **Props:**
-- `tools`: Array of tool definitions
-- `client`: LLM client implementation
-- `systemMessage?`: Initial message from the assistant
-- `onToolSubmit?`: Callback when a form is submitted
-- `onError?`: Error handler
-- `renderMessages?`: Custom message rendering
-- `renderInput?`: Custom input rendering
-- `className?`: CSS class name
 
-#### `ToolForm`
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `tools` | `ToolDefinition[]` | Yes | Available forms |
+| `client` | `LLMClient` | Yes | Your LLM client implementation |
+| `initialContext` | `string` | Yes | Context for the LLM (e.g., "User on /register page") |
+| `systemMessage` | `string` | No | Instructions for the LLM |
+| `onToolSubmit` | `(name, data) => void` | No | Called when form is submitted |
+| `onError` | `(error) => void` | No | Error handler |
+| `renderMessage` | `(msg) => ReactNode` | No | Custom message rendering |
+| `renderLoading` | `() => ReactNode` | No | Custom loading state |
 
-Renders a single tool as a form.
+### `useLLMForm(config)`
 
-**Props:**
-- `tool`: Tool definition
-- `onSubmit`: Form submission handler
-- `onCancel?`: Cancel handler
-- `isLoading?`: Loading state
-
-### Hooks
-
-#### `useLLMForm(config)`
-
-Hook for managing LLM form state.
+Hook for building custom UIs.
 
 **Returns:**
-- `messages`: Conversation history
-- `currentTool`: Currently requested tool/form
-- `isLoading`: Loading state
-- `error`: Error state
-- `sendMessage(text)`: Send a user message
-- `submitTool(data)`: Submit the current form
-- `cancelTool()`: Cancel the current form
-- `reset()`: Reset the conversation
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `currentTool` | `ToolDefinition \| null` | Currently selected form |
+| `currentMessage` | `string \| null` | LLM's current message |
+| `isLoading` | `boolean` | Loading state |
+| `error` | `Error \| null` | Error state |
+| `submitTool` | `(data) => Promise<void>` | Submit form data |
 
 ### Types
 
-See the [TypeScript definitions](src/types/index.ts) for complete type information.
+See [src/types/index.ts](src/types/index.ts) for complete TypeScript definitions.
+
+## Examples
+
+Check out the [demo/](demo/) directory for a working example with:
+- Mock LLM client (no API keys needed)
+- Three different forms
+- Tab-based navigation
+- Form submission tracking
+
+To run the demo (requires Node.js 18+):
+
+```bash
+cd demo
+npm install
+npm run dev
+```
+
+## Use Cases
+
+- **Multi-page forms**: Different forms for different pages
+- **Onboarding flows**: Progressive information collection
+- **Surveys and feedback**: Structured data collection
+- **Booking systems**: Appointment scheduling
+- **Configuration wizards**: Step-by-step setup
+- **Data entry**: Guided form completion with validation
 
 ## Contributing
 
@@ -388,3 +384,7 @@ Contributions are welcome! Please open an issue or submit a pull request.
 ## License
 
 MIT
+
+---
+
+**Built with**: React • TypeScript • Zod • React Hook Form

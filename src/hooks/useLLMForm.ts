@@ -1,36 +1,42 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { LLMFormConfig, LLMFormState, Message, ToolDefinition } from '../types';
 
-export function useLLMForm(config: LLMFormConfig) {
+export interface UseLLMFormConfig extends LLMFormConfig {
+  /**
+   * Initial context to send to the LLM (e.g., page URL, user intent, app state)
+   */
+  initialContext: string;
+}
+
+export function useLLMForm(config: UseLLMFormConfig) {
   const [state, setState] = useState<LLMFormState>({
-    messages: config.systemMessage
-      ? [{ role: 'assistant', content: config.systemMessage }]
-      : [],
+    messages: [],
     currentTool: null,
-    isLoading: false,
+    isLoading: true, // Start in loading state
     error: null,
   });
 
-  /**
-   * Send a user message and get the LLM's response
-   */
-  const sendMessage = useCallback(
-    async (userMessage: string) => {
-      setState((prev) => ({
-        ...prev,
-        isLoading: true,
-        error: null,
-      }));
+  const [currentMessage, setCurrentMessage] = useState<string | null>(null);
 
-      const userMsg: Message = {
+  // Initialize: send initial context to LLM on mount
+  useEffect(() => {
+    const initialize = async () => {
+      const initialMessages: Message[] = [];
+
+      if (config.systemMessage) {
+        initialMessages.push({
+          role: 'assistant',
+          content: config.systemMessage,
+        });
+      }
+
+      initialMessages.push({
         role: 'user',
-        content: userMessage,
-      };
-
-      const newMessages = [...state.messages, userMsg];
+        content: config.initialContext,
+      });
 
       try {
-        const response = await config.client.sendMessage(newMessages, config.tools);
+        const response = await config.client.sendMessage(initialMessages, config.tools);
 
         // If the LLM made a tool call, set it as the current tool
         let currentTool: ToolDefinition | null = null;
@@ -40,23 +46,27 @@ export function useLLMForm(config: LLMFormConfig) {
         }
 
         setState({
-          messages: [...newMessages, response],
+          messages: [...initialMessages, response],
           currentTool,
           isLoading: false,
           error: null,
         });
+
+        setCurrentMessage(response.content || null);
       } catch (error) {
         const err = error instanceof Error ? error : new Error('Unknown error');
-        setState((prev) => ({
-          ...prev,
+        setState({
+          messages: initialMessages,
+          currentTool: null,
           isLoading: false,
           error: err,
-        }));
+        });
         config.onError?.(err);
       }
-    },
-    [state.messages, config]
-  );
+    };
+
+    initialize();
+  }, []); // Only run on mount
 
   /**
    * Submit the current tool form with user data
@@ -105,6 +115,8 @@ export function useLLMForm(config: LLMFormConfig) {
           isLoading: false,
           error: null,
         });
+
+        setCurrentMessage(response.content || null);
       } catch (error) {
         const err = error instanceof Error ? error : new Error('Unknown error');
         setState((prev) => ({
@@ -118,35 +130,9 @@ export function useLLMForm(config: LLMFormConfig) {
     [state.currentTool, state.messages, config]
   );
 
-  /**
-   * Cancel the current tool form
-   */
-  const cancelTool = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      currentTool: null,
-    }));
-  }, []);
-
-  /**
-   * Reset the entire conversation
-   */
-  const reset = useCallback(() => {
-    setState({
-      messages: config.systemMessage
-        ? [{ role: 'assistant', content: config.systemMessage }]
-        : [],
-      currentTool: null,
-      isLoading: false,
-      error: null,
-    });
-  }, [config.systemMessage]);
-
   return {
     ...state,
-    sendMessage,
+    currentMessage,
     submitTool,
-    cancelTool,
-    reset,
   };
 }
