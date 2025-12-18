@@ -1,0 +1,200 @@
+/* Custom styling for the demo to show how users can theme the forms */
+
+.llm-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Error */
+.llm-form-error-container {
+  padding: 1rem;
+  background-color: #fee;
+  color: #c00;
+  border-radius: 8px;
+  border-left: 4px solid #c00;
+}
+
+/* Loading */
+.llm-form-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.llm-form-loading-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.llm-form-loading-text {
+  color: #667eea;
+  font-size: 1.1rem;
+}
+
+/* Message */
+.llm-form-message {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+}
+
+.llm-form-message-text {
+  margin: 0;
+  line-height: 1.7;
+  color: #333;
+}
+
+/* Form */
+.llm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.llm-form-title {
+  margin: 0;
+  color: #667eea;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.llm-form-description {
+  margin: -0.5rem 0 0 0;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* Field */
+.llm-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.llm-form-label {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.llm-form-required {
+  color: #e74c3c;
+}
+
+.llm-form-help {
+  color: #777;
+  font-size: 0.875rem;
+  margin-top: -0.25rem;
+}
+
+/* Inputs */
+.llm-form-input,
+.llm-form-select,
+.llm-form-textarea {
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: all 0.2s;
+  background: white;
+}
+
+.llm-form-input:focus,
+.llm-form-select:focus,
+.llm-form-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.llm-form-input:disabled,
+.llm-form-select:disabled,
+.llm-form-textarea:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.llm-form-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.llm-form-textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.5;
+}
+
+/* Error message */
+.llm-form-error {
+  color: #e74c3c;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.llm-form-error::before {
+  content: '⚠';
+}
+
+/* Actions */
+.llm-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.llm-form-submit,
+.llm-form-cancel {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.llm-form-submit {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
+}
+
+.llm-form-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+}
+
+.llm-form-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.llm-form-cancel {
+  background: #e0e0e0;
+  color: #666;
+}
+
+.llm-form-cancel:hover:not(:disabled) {
+  background: #d0d0d0;
+}
+
+.llm-form-submit:disabled,
+.llm-form-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}

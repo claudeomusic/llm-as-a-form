@@ -3,6 +3,7 @@ import { LLMFormContainer } from 'llm-as-a-form';
 import { createMockLLMClient } from './mockLLMClient';
 import { tools } from './tools';
 import './App.css';
+import './FormStyles.css';
 
 const mockClient = createMockLLMClient();
 

@@ -16,9 +16,15 @@ export function parameterToZodSchema(param: ToolParameter): z.ZodTypeAny {
       break;
 
     case 'number':
-      schema = z.number();
       if (param.enum) {
-        schema = z.enum(param.enum.map(String) as [string, ...string[]]).transform(Number);
+        // For number enums, use union of literals
+        const numberValues = param.enum as number[];
+        schema = z.union([
+          z.literal(numberValues[0]),
+          ...numberValues.slice(1).map(v => z.literal(v))
+        ] as [z.ZodLiteral<number>, z.ZodLiteral<number>, ...z.ZodLiteral<number>[]]);
+      } else {
+        schema = z.number();
       }
       break;
 

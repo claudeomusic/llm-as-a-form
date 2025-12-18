@@ -46,17 +46,10 @@ export function LLMFormContainer({
   });
 
   return (
-    <div className={className} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div className={className || 'llm-form-container'}>
       {/* Error display */}
       {error && (
-        <div
-          style={{
-            padding: '0.75rem',
-            backgroundColor: '#ffebee',
-            color: '#c62828',
-            borderRadius: '4px',
-          }}
-        >
+        <div className="llm-form-error-container">
           Error: {error.message}
         </div>
       )}
@@ -66,9 +59,9 @@ export function LLMFormContainer({
         renderLoading ? (
           renderLoading()
         ) : (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏳</div>
-            <p style={{ color: '#666' }}>Loading...</p>
+          <div className="llm-form-loading">
+            <div className="llm-form-loading-icon">⏳</div>
+            <p className="llm-form-loading-text">Loading...</p>
           </div>
         )
       )}
@@ -78,15 +71,8 @@ export function LLMFormContainer({
         renderMessage ? (
           renderMessage(currentMessage)
         ) : (
-          <div
-            style={{
-              padding: '1.5rem',
-              backgroundColor: '#f0f4ff',
-              borderRadius: '8px',
-              borderLeft: '4px solid #007bff',
-            }}
-          >
-            <p style={{ margin: 0, lineHeight: 1.6 }}>{currentMessage}</p>
+          <div className="llm-form-message">
+            <p className="llm-form-message-text">{currentMessage}</p>
           </div>
         )
       )}

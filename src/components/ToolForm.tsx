@@ -22,24 +22,25 @@ export function ToolForm({ tool, onSubmit, onCancel, isLoading = false }: ToolFo
   const { register, handleSubmit, formState: { errors } } = form;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <h2>{tool.name}</h2>
-      {tool.description && <p>{tool.description}</p>}
+    <form onSubmit={handleSubmit(onSubmit)} className="llm-form">
+      <h2 className="llm-form-title">{tool.name}</h2>
+      {tool.description && <p className="llm-form-description">{tool.description}</p>}
 
       {fields.map((field) => (
-        <div key={field.name} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <label htmlFor={field.name}>
+        <div key={field.name} className="llm-form-field">
+          <label htmlFor={field.name} className="llm-form-label">
             {field.label}
-            {field.required && <span style={{ color: 'red' }}> *</span>}
+            {field.required && <span className="llm-form-required"> *</span>}
           </label>
 
           {field.description && (
-            <small style={{ color: '#666' }}>{field.description}</small>
+            <small className="llm-form-help">{field.description}</small>
           )}
 
           {field.type === 'select' && field.options ? (
             <select
               id={field.name}
+              className="llm-form-select"
               {...register(field.name, {
                 setValueAs: (v) => {
                   // Handle number types in select
@@ -48,11 +49,6 @@ export function ToolForm({ tool, onSubmit, onCancel, isLoading = false }: ToolFo
                 }
               })}
               disabled={isLoading}
-              style={{
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-              }}
             >
               <option value="">Select...</option>
               {field.options.map((option) => (
@@ -65,60 +61,43 @@ export function ToolForm({ tool, onSubmit, onCancel, isLoading = false }: ToolFo
             <input
               id={field.name}
               type="checkbox"
+              className="llm-form-checkbox"
               {...register(field.name)}
               disabled={isLoading}
-              style={{ width: 'fit-content' }}
             />
           ) : field.type === 'textarea' ? (
             <textarea
               id={field.name}
+              className="llm-form-textarea"
               {...register(field.name)}
               disabled={isLoading}
               rows={4}
-              style={{
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                fontFamily: 'inherit',
-              }}
             />
           ) : (
             <input
               id={field.name}
               type={field.type}
+              className="llm-form-input"
               {...register(field.name, {
                 setValueAs: field.type === 'number' ? (v) => (v === '' ? undefined : Number(v)) : undefined,
               })}
               disabled={isLoading}
-              style={{
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-              }}
             />
           )}
 
           {errors[field.name] && (
-            <span style={{ color: 'red', fontSize: '0.875rem' }}>
+            <span className="llm-form-error">
               {errors[field.name]?.message as string}
             </span>
           )}
         </div>
       ))}
 
-      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+      <div className="llm-form-actions">
         <button
           type="submit"
+          className="llm-form-submit"
           disabled={isLoading}
-          style={{
-            padding: '0.5rem 1rem',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            opacity: isLoading ? 0.6 : 1,
-          }}
         >
           {isLoading ? 'Submitting...' : 'Submit'}
         </button>
@@ -126,17 +105,9 @@ export function ToolForm({ tool, onSubmit, onCancel, isLoading = false }: ToolFo
         {onCancel && (
           <button
             type="button"
+            className="llm-form-cancel"
             onClick={onCancel}
             disabled={isLoading}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.6 : 1,
-            }}
           >
             Cancel
           </button>
