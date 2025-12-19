@@ -1,5 +1,4 @@
-<img width="1263" height="877" alt="Screenshot 2025-12-18 at 4 43 26 PM" src="https://github.com/user-attachments/assets/d1df48cb-d7f3-459a-ba13-f9d8bef46cf0" />
-
+<img width="1272" height="912" alt="Screenshot 2025-12-18 at 4 58 28 PM" src="https://github.com/user-attachments/assets/51fbba29-13a5-40e2-ab78-20580e61bd11" />
 
 # llm-as-a-form
 
