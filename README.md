@@ -1,3 +1,6 @@
+<img width="1263" height="877" alt="Screenshot 2025-12-18 at 4 43 26 PM" src="https://github.com/user-attachments/assets/d1df48cb-d7f3-459a-ba13-f9d8bef46cf0" />
+
+
 # llm-as-a-form
 
 A React library that replaces chat interfaces with intelligent, dynamic forms. The LLM analyzes context and immediately presents the appropriate form—no chat required.
